@@ -15,39 +15,46 @@ const inspectionSchema = new mongoose.Schema({
   },
   // Section 1: Pre-Exam Facilities
   drinkingWater: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   pwdFriendly: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   wheelChair: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   rampFacility: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   workingFans: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   workingLights: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
-  
+
   // Section 2: Lab & Infrastructure
   labsOnGroundFloor: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
-  numberOfLabs: {
-    type: Number,
-    required: true
-  },
+  numberOfLabs: [{
+    floor: { type: Number, required: true },
+    count: { type: Number, required: true }
+  }],
   totalSystemCount: {
     type: Number,
     required: true
@@ -56,43 +63,47 @@ const inspectionSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  
+
   // Section 3: CCTV
   cctvWorking: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   cctvCount: {
     type: Number,
     required: true
   },
   cctvRecordingWorking: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
-  
+
   // Section 4: Power Backup
   generatorAvailable: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   generatorCapacity: {
-    type: String,
-    default: ''
+    type: Number,
+    default: 0
   },
   upsAvailable: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   upsCapacity: {
-    type: String,
-    default: ''
+    type: Number,
+    default: 0
   },
   powerBackupDuration: {
     type: String,
     required: true
   },
-  
+
   // Section 5: During Exam
   examStartTime: {
     type: String,
@@ -107,20 +118,30 @@ const inspectionSchema = new mongoose.Schema({
     required: true
   },
   randomSeatAllocation: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
   seatChangeRequest: {
-    status: { type: String, enum: ['Yes', 'Not Available', 'Not Matched'], required: true },
-    remark: String
+    status: { type: String, enum: ['Yes', 'No'], required: true },
+    remark: String,
+    imageUrl: String
   },
-  
+
   // Section 6: Final
   finalRemarks: {
     type: String,
     required: true
   },
-  
+
+  // Images
+  images: [{
+    url: String,
+    publicId: String,
+    section: String,
+    fieldName: String
+  }],
+
   submittedAt: {
     type: Date,
     default: Date.now

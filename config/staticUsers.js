@@ -1,31 +1,31 @@
 // Static user credentials (hard-coded for now)
 const staticUsers = [
   {
-    email: "vikash.@invnted.com",
+    email: "vikash.@gmail.com",
     password: "vikash@123",
     centerName: "DBUU Doon Center",
     centerCode: "DBUU001"
   },
   {
-    email: "deependra.@invnted.com",
+    email: "deependra.@gmail.com",
     password: "deependra@123",
     centerName: "National Exam Center",
     centerCode: "National002"
   },
    {
-    email: "anup.@invnted.com",
+    email: "anup.@gmail.com",
     password: "anup@123",
     centerName: "Delhi University Center",
     centerCode: "Delhi002"
   },
    {
-    email: "deepanshu.@invnted.com",
+    email: "deepanshu.@gmail.com",
     password: "deepanshu@123",
     centerName: "Bihar University Center",
     centerCode: "BUC002"
   },
    {
-    email: "prince.@invnted.com",
+    email: "prince.@gmail.com",
     password: "prince@123",
     centerName: "Noida International Center",
     centerCode: "NIC002"
