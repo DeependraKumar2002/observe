@@ -82,23 +82,45 @@ router.post('/inspection', async (req, res) => {
 // @access  Public
 router.post('/upload-image', upload.single('image'), async (req, res) => {
   try {
+    // Log request for debugging
+    console.log('Received image upload request');
+    console.log('File:', req.file);
+
     if (!req.file) {
+      console.log('No file provided in request');
       return res.status(400).json({
         success: false,
         message: 'No image file provided'
       });
     }
 
+    // Log file details
+    console.log('Uploading file to Cloudinary:', {
+      filename: req.file.filename,
+      path: req.file.path,
+      size: req.file.size
+    });
+
     // Upload to Cloudinary
     const result = await cloudinary.uploader.upload(req.file.path, {
       folder: 'inspection-images',
       use_filename: true,
-      unique_filename: false
+      unique_filename: false,
+      timeout: 60000 // Increase timeout for large images
+    });
+
+    // Log Cloudinary result
+    console.log('Cloudinary upload result:', {
+      secure_url: result.secure_url,
+      public_id: result.public_id
     });
 
     // Delete local file after upload
     const fs = require('fs');
-    fs.unlinkSync(req.file.path);
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+      console.log('Local file deleted:', req.file.path);
+    }
 
     res.json({
       success: true,
@@ -110,9 +132,23 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     console.error('Image upload error:', error);
+
+    // Try to delete local file even if upload failed
+    try {
+      if (req.file && req.file.path) {
+        const fs = require('fs');
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+          console.log('Cleaned up local file after error:', req.file.path);
+        }
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up local file:', cleanupError);
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Failed to upload image',
+      message: 'Failed to upload image to Cloudinary',
       error: error.message
     });
   }
@@ -125,18 +161,42 @@ router.post('/upload-base64-image', async (req, res) => {
   try {
     const { image } = req.body;
 
+    // Log request for debugging
+    console.log('Received base64 image upload request');
+    console.log('Image data length:', image ? image.length : 0);
+
     if (!image) {
+      console.log('No image data provided in request');
       return res.status(400).json({
         success: false,
         message: 'No image data provided'
       });
     }
 
+    // Validate base64 format
+    if (!image.startsWith('data:image/') && !image.startsWith('/9j/') && !image.startsWith('iVBOR')) {
+      console.log('Invalid base64 image format');
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Must be base64 encoded image.'
+      });
+    }
+
+    // Log upload attempt
+    console.log('Uploading base64 image to Cloudinary...');
+
     // Upload base64 image to Cloudinary
     const result = await cloudinary.uploader.upload(image, {
       folder: 'inspection-images',
       use_filename: true,
-      unique_filename: false
+      unique_filename: false,
+      timeout: 60000 // Increase timeout for large images
+    });
+
+    // Log Cloudinary result
+    console.log('Cloudinary upload result:', {
+      secure_url: result.secure_url,
+      public_id: result.public_id
     });
 
     res.json({
@@ -151,7 +211,7 @@ router.post('/upload-base64-image', async (req, res) => {
     console.error('Base64 image upload error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to upload image',
+      message: 'Failed to upload image to Cloudinary',
       error: error.message
     });
   }
