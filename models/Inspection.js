@@ -105,7 +105,15 @@ const inspectionSchema = new mongoose.Schema({
   },
 
   // Section 5: During Exam
+  examStartDate: {
+    type: String,
+    required: true
+  },
   examStartTime: {
+    type: String,
+    required: true
+  },
+  examEndDate: {
     type: String,
     required: true
   },
@@ -113,7 +121,11 @@ const inspectionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  questionPaperDownloadTime: {
+  downloadDate: {
+    type: String,
+    required: true
+  },
+  downloadTime: {
     type: String,
     required: true
   },
@@ -136,10 +148,10 @@ const inspectionSchema = new mongoose.Schema({
 
   // Images
   images: [{
-    url: String,
-    publicId: String,
+    uri: String,
     section: String,
-    fieldName: String
+    fieldName: String,
+    timestamp: Date
   }],
 
   submittedAt: {
