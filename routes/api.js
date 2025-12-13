@@ -157,6 +157,63 @@ router.post('/upload-base64-image', async (req, res) => {
   }
 });
 
+// @route   PUT /api/inspection/:id/during-exam
+// @desc    Update During Exam section of existing inspection
+// @access  Public
+router.put('/inspection/:id/during-exam', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      examStartDate,
+      examStartTime,
+      examEndDate,
+      examEndTime,
+      downloadDate,
+      downloadTime,
+      randomSeatAllocation,
+      seatChangeRequest
+    } = req.body;
+
+    // Find existing inspection
+    const inspection = await Inspection.findById(id);
+    if (!inspection) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inspection not found'
+      });
+    }
+
+    // Update only the During Exam section fields
+    if (examStartDate !== undefined) inspection.examStartDate = examStartDate;
+    if (examStartTime !== undefined) inspection.examStartTime = examStartTime;
+    if (examEndDate !== undefined) inspection.examEndDate = examEndDate;
+    if (examEndTime !== undefined) inspection.examEndTime = examEndTime;
+    if (downloadDate !== undefined) inspection.downloadDate = downloadDate;
+    if (downloadTime !== undefined) inspection.downloadTime = downloadTime;
+    if (randomSeatAllocation !== undefined) inspection.randomSeatAllocation = randomSeatAllocation;
+    if (seatChangeRequest !== undefined) inspection.seatChangeRequest = seatChangeRequest;
+
+    // Update the submittedAt timestamp
+    inspection.submittedAt = Date.now();
+
+    // Save the updated inspection
+    await inspection.save();
+
+    res.json({
+      success: true,
+      message: 'During Exam section updated successfully',
+      data: inspection
+    });
+  } catch (error) {
+    console.error('During Exam update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update During Exam section',
+      error: error.message
+    });
+  }
+});
+
 // @route   GET /api/inspections
 // @desc    Get all inspections (optional - for admin/review)
 // @access  Public
