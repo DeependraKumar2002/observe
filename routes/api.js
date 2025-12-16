@@ -78,6 +78,21 @@ router.post('/inspection', async (req, res) => {
     });
   } catch (error) {
     console.error('Inspection submission error:', error);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const errors = {};
+      Object.keys(error.errors).forEach(key => {
+        errors[key] = error.errors[key].message;
+      });
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Inspection validation failed',
+        errors: errors
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to submit inspection',
@@ -253,7 +268,6 @@ router.get('/chat/messages/:userEmail/:centerCode', async (req, res) => {
       userEmail,
       centerCode
     }).sort({ timestamp: 1 }); // Ascending order
-    console.log("hiiiiii")
     console.log(messages)
 
     res.json({
