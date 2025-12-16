@@ -246,15 +246,18 @@ router.post('/chat/message', async (req, res) => {
 router.get('/chat/messages/:userEmail/:centerCode', async (req, res) => {
   try {
     const { userEmail, centerCode } = req.params;
+ 
 
     // Find messages for this user and center, sorted by timestamp
     const messages = await ChatMessage.find({
       userEmail,
       centerCode
     }).sort({ timestamp: 1 }); // Ascending order
+    console.log("hiiiiii")
+    console.log(messages)
 
     res.json({
-      success: true,
+      success: "true",
       count: messages.length,
       data: messages
     });
@@ -289,6 +292,59 @@ router.delete('/chat/messages/:userEmail/:centerCode', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to clear chat history'
+    });
+  }
+});
+
+// @route   POST /api/upload-base64-image
+// @desc    Upload base64 image to Cloudinary
+// @access  Public
+router.post('/upload-base64-image', async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    // Validate input
+    if (!image) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image data provided'
+      });
+    }
+
+    // Validate base64 format
+    if (!image.startsWith('data:image')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Must be base64 data URI'
+      });
+    }
+
+    console.log('Uploading image to Cloudinary...');
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(image, {
+      folder: 'inspection-images',
+      use_filename: true,
+      unique_filename: false,
+      overwrite: false
+    });
+
+    console.log('Image uploaded to Cloudinary:', result.secure_url);
+
+    res.json({
+      success: true,
+      message: 'Image uploaded successfully',
+      data: {
+        url: result.secure_url,
+        public_id: result.public_id
+      }
+    });
+  } catch (error) {
+    console.error('Image upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload image to Cloudinary',
+      error: error.message
     });
   }
 });

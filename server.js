@@ -79,6 +79,21 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', async (messageData) => {
     console.log('📧 Message sent:', messageData);
 
+    try {
+      // Save message to database
+      const chatMessage = new ChatMessage({
+        userEmail: messageData.userEmail,
+        centerCode: messageData.centerCode,
+        text: messageData.text,
+        sender: 'user'
+      });
+
+      await chatMessage.save();
+      console.log('📧 Message saved to database:', chatMessage._id);
+    } catch (error) {
+      console.error('Failed to save user message to database:', error);
+    }
+
     // Broadcast to all admins or specific admin room
     io.emit('receiveMessage', messageData);
   });
@@ -86,6 +101,21 @@ io.on('connection', (socket) => {
   // Handle sending message from admin to user
   socket.on('sendAdminMessage', async (messageData) => {
     console.log('📢 Admin message sent:', messageData);
+
+    try {
+      // Save message to database
+      const chatMessage = new ChatMessage({
+        userEmail: messageData.userEmail,
+        centerCode: messageData.centerCode,
+        text: messageData.text,
+        sender: 'admin'
+      });
+
+      await chatMessage.save();
+      console.log('📢 Admin message saved to database:', chatMessage._id);
+    } catch (error) {
+      console.error('Failed to save admin message to database:', error);
+    }
 
     // Send to specific user
     const room = `user-${messageData.userEmail}-${messageData.centerCode}`;
