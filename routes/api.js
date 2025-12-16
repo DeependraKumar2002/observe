@@ -265,8 +265,7 @@ router.get('/chat/messages/:userEmail/:centerCode', async (req, res) => {
 
     // Find messages for this user and center, sorted by timestamp
     const messages = await ChatMessage.find({
-      userEmail,
-      centerCode
+      
     }).sort({ timestamp: 1 }); // Ascending order
     console.log(messages)
 
