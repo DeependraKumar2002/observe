@@ -78,21 +78,21 @@ router.post('/inspection', async (req, res) => {
     });
   } catch (error) {
     console.error('Inspection submission error:', error);
-    
+
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const errors = {};
       Object.keys(error.errors).forEach(key => {
         errors[key] = error.errors[key].message;
       });
-      
+
       return res.status(400).json({
         success: false,
         message: 'Inspection validation failed',
         errors: errors
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'Failed to submit inspection',
@@ -261,7 +261,7 @@ router.post('/chat/message', async (req, res) => {
 router.get('/chat/messages/:userEmail/:centerCode', async (req, res) => {
   try {
     const { userEmail, centerCode } = req.params;
- 
+
 
     // Find messages for this user and center, sorted by timestamp
     const messages = await ChatMessage.find({
@@ -280,6 +280,35 @@ router.get('/chat/messages/:userEmail/:centerCode', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch messages'
+    });
+  }
+});
+
+// @route   GET /api/chat/admin/messages
+// @desc    Get all admin messages (optionally filter by centerCode)
+// @access  Public (can secure later)
+router.get('/chat/admin/messages', async (req, res) => {
+  try {
+    const { centerCode } = req.query;
+
+    const query = { sender: 'admin' };
+
+    if (centerCode) {
+      query.centerCode = centerCode;
+    }
+
+    const messages = await ChatMessage.find(query).sort({ timestamp: 1 });
+
+    res.json({
+      success: true,
+      count: messages.length,
+      data: messages
+    });
+  } catch (error) {
+    console.error('Get admin chat messages error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admin messages'
     });
   }
 });
