@@ -4,8 +4,21 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = socketIo(server, {
+  cors: {
+    origin: "*", // In production, restrict this to your frontend domain
+    methods: ["GET", "POST"]
+  }
+});
 
 // Middleware
 app.use(cors());
@@ -48,6 +61,46 @@ app.get('/', (req, res) => {
   });
 });
 
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('📱 New client connected:', socket.id);
+
+  // Handle user joining chat
+  socket.on('join', (userData) => {
+    console.log('👤 User joined chat:', userData);
+    socket.userData = userData;
+    socket.join(`user-${userData.email}-${userData.centerCode}`);
+
+    // Notify others that a user joined
+    socket.broadcast.emit('userJoined', userData);
+  });
+
+  // Handle sending message from user to admin
+  socket.on('sendMessage', async (messageData) => {
+    console.log('📧 Message sent:', messageData);
+
+    // Broadcast to all admins or specific admin room
+    io.emit('receiveMessage', messageData);
+  });
+
+  // Handle sending message from admin to user
+  socket.on('sendAdminMessage', async (messageData) => {
+    console.log('📢 Admin message sent:', messageData);
+
+    // Send to specific user
+    const room = `user-${messageData.userEmail}-${messageData.centerCode}`;
+    io.to(room).emit('receiveAdminMessage', messageData);
+  });
+
+  // Handle user disconnecting
+  socket.on('disconnect', () => {
+    console.log('🚪 Client disconnected:', socket.id);
+    if (socket.userData) {
+      socket.broadcast.emit('userLeft', socket.userData);
+    }
+  });
+});
+
 // 404 handler
 app.use((req, res) => {
   console.log(`404 Not Found: ${req.method} ${req.path}`);
@@ -69,9 +122,10 @@ app.use((err, req, res, next) => {
 
 // Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API available at http://localhost:${PORT}/api`);
+  console.log(`🔌 Socket.IO available at ws://localhost:${PORT}`);
 });
 
 module.exports = app;

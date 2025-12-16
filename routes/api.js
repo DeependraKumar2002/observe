@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Inspection = require('../models/Inspection');
+const ChatMessage = require('../models/ChatMessage'); // Import ChatMessage model
 const staticUsers = require('../config/staticUsers');
 const upload = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
@@ -52,20 +53,28 @@ router.post('/login', (req, res) => {
 });
 
 // @route   POST /api/inspection
-// @desc    Submit inspection form
+// @desc    Submit new inspection
 // @access  Public
 router.post('/inspection', async (req, res) => {
   try {
     const inspectionData = req.body;
 
-    // Create new inspection record
-    const inspection = new Inspection(inspectionData);
-    await inspection.save();
+    // Validate required fields
+    if (!inspectionData.observerEmail || !inspectionData.centerName || !inspectionData.centerCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Create new inspection
+    const newInspection = new Inspection(inspectionData);
+    const savedInspection = await newInspection.save();
 
     res.status(201).json({
       success: true,
       message: 'Inspection submitted successfully',
-      data: inspection
+      data: savedInspection
     });
   } catch (error) {
     console.error('Inspection submission error:', error);
@@ -77,152 +86,25 @@ router.post('/inspection', async (req, res) => {
   }
 });
 
-// @route   POST /api/upload-image
-// @desc    Upload image to Cloudinary
-// @access  Public
-router.post('/upload-image', upload.single('image'), async (req, res) => {
-  try {
-    // Log request for debugging
-    console.log('Received image upload request');
-    console.log('File:', req.file);
-
-    if (!req.file) {
-      console.log('No file provided in request');
-      return res.status(400).json({
-        success: false,
-        message: 'No image file provided'
-      });
-    }
-
-    // Log file details
-    console.log('Uploading file to Cloudinary:', {
-      filename: req.file.filename,
-      path: req.file.path,
-      size: req.file.size
-    });
-
-    // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'inspection-images',
-      use_filename: true,
-      unique_filename: false,
-      timeout: 60000 // Increase timeout for large images
-    });
-
-    // Log Cloudinary result
-    console.log('Cloudinary upload result:', {
-      secure_url: result.secure_url,
-      public_id: result.public_id
-    });
-
-    // Delete local file after upload
-    const fs = require('fs');
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-      console.log('Local file deleted:', req.file.path);
-    }
-
-    res.json({
-      success: true,
-      message: 'Image uploaded successfully',
-      data: {
-        url: result.secure_url,
-        publicId: result.public_id
-      }
-    });
-  } catch (error) {
-    console.error('Image upload error:', error);
-
-    // Try to delete local file even if upload failed
-    try {
-      if (req.file && req.file.path) {
-        const fs = require('fs');
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-          console.log('Cleaned up local file after error:', req.file.path);
-        }
-      }
-    } catch (cleanupError) {
-      console.error('Error cleaning up local file:', cleanupError);
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload image to Cloudinary',
-      error: error.message
-    });
-  }
-});
-
-// @route   POST /api/upload-base64-image
-// @desc    Upload base64 image to Cloudinary
-// @access  Public
-router.post('/upload-base64-image', async (req, res) => {
-  try {
-    const { image } = req.body;
-
-    // Log request for debugging
-    console.log('Received base64 image upload request');
-    console.log('Image data length:', image ? image.length : 0);
-
-    if (!image) {
-      console.log('No image data provided in request');
-      return res.status(400).json({
-        success: false,
-        message: 'No image data provided'
-      });
-    }
-
-    // Validate base64 format
-    if (!image.startsWith('data:image/') && !image.startsWith('/9j/') && !image.startsWith('iVBOR')) {
-      console.log('Invalid base64 image format');
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid image format. Must be base64 encoded image.'
-      });
-    }
-
-    // Log upload attempt
-    console.log('Uploading base64 image to Cloudinary...');
-
-    // Upload base64 image to Cloudinary
-    const result = await cloudinary.uploader.upload(image, {
-      folder: 'inspection-images',
-      use_filename: true,
-      unique_filename: false,
-      timeout: 60000 // Increase timeout for large images
-    });
-
-    // Log Cloudinary result
-    console.log('Cloudinary upload result:', {
-      secure_url: result.secure_url,
-      public_id: result.public_id
-    });
-
-    res.json({
-      success: true,
-      message: 'Image uploaded successfully',
-      data: {
-        url: result.secure_url,
-        publicId: result.public_id
-      }
-    });
-  } catch (error) {
-    console.error('Base64 image upload error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to upload image to Cloudinary',
-      error: error.message
-    });
-  }
-});
-
 // @route   PUT /api/inspection/:id/during-exam
 // @desc    Update During Exam section of existing inspection
 // @access  Public
 router.put('/inspection/:id/during-exam', async (req, res) => {
   try {
     const { id } = req.params;
+    const duringExamData = req.body;
+
+    // Find the inspection by ID
+    const inspection = await Inspection.findById(id);
+
+    if (!inspection) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inspection not found'
+      });
+    }
+
+    // Update only the During Exam section fields
     const {
       examStartDate,
       examStartTime,
@@ -232,18 +114,8 @@ router.put('/inspection/:id/during-exam', async (req, res) => {
       downloadTime,
       randomSeatAllocation,
       seatChangeRequest
-    } = req.body;
+    } = duringExamData;
 
-    // Find existing inspection
-    const inspection = await Inspection.findById(id);
-    if (!inspection) {
-      return res.status(404).json({
-        success: false,
-        message: 'Inspection not found'
-      });
-    }
-
-    // Update only the During Exam section fields
     if (examStartDate !== undefined) inspection.examStartDate = examStartDate;
     if (examStartTime !== undefined) inspection.examStartTime = examStartTime;
     if (examEndDate !== undefined) inspection.examEndDate = examEndDate;
@@ -325,6 +197,98 @@ router.get('/inspections/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch inspection'
+    });
+  }
+});
+
+// @route   POST /api/chat/message
+// @desc    Save a chat message to MongoDB
+// @access  Public
+router.post('/chat/message', async (req, res) => {
+  try {
+    const { userEmail, centerCode, message, sender } = req.body;
+
+    if (!userEmail || !centerCode || !message || !sender) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Create new chat message
+    const chatMessage = new ChatMessage({
+      userEmail,
+      centerCode,
+      text: message,
+      sender
+    });
+
+    // Save to MongoDB
+    const savedMessage = await chatMessage.save();
+
+    res.json({
+      success: true,
+      message: 'Message saved successfully',
+      data: savedMessage
+    });
+  } catch (error) {
+    console.error('Save chat message error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save message'
+    });
+  }
+});
+
+// @route   GET /api/chat/messages/:userEmail/:centerCode
+// @desc    Get chat messages for a user from MongoDB
+// @access  Public
+router.get('/chat/messages/:userEmail/:centerCode', async (req, res) => {
+  try {
+    const { userEmail, centerCode } = req.params;
+
+    // Find messages for this user and center, sorted by timestamp
+    const messages = await ChatMessage.find({
+      userEmail,
+      centerCode
+    }).sort({ timestamp: 1 }); // Ascending order
+
+    res.json({
+      success: true,
+      count: messages.length,
+      data: messages
+    });
+  } catch (error) {
+    console.error('Get chat messages error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch messages'
+    });
+  }
+});
+
+// @route   DELETE /api/chat/messages/:userEmail/:centerCode
+// @desc    Clear chat messages for a user from MongoDB
+// @access  Public
+router.delete('/chat/messages/:userEmail/:centerCode', async (req, res) => {
+  try {
+    const { userEmail, centerCode } = req.params;
+
+    // Delete all messages for this user and center
+    const result = await ChatMessage.deleteMany({
+      userEmail,
+      centerCode
+    });
+
+    res.json({
+      success: true,
+      message: `Chat history cleared (${result.deletedCount} messages deleted)`
+    });
+  } catch (error) {
+    console.error('Clear chat messages error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear chat history'
     });
   }
 });
